@@ -9,7 +9,7 @@ import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
 
 /* ============================================================
-   DEPLOYED BACKEND URL (Render)
+   BACKEND URL (Render)
 ============================================================ */
 export const BASE_API_URL = "https://sales-inventory-management.onrender.com";
 
@@ -23,22 +23,32 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 /* ============================================================
-   CORS (REQUIRED FOR RENDER + VERCEL)
+   🔥 FIXED CORS — MUST RUN FIRST BEFORE ROUTES
 ============================================================ */
 const allowedOrigins = [
-  "https://sales-inventory-management-vbqo-5xddtfano.vercel.app", // your Vercel frontend
-  "http://localhost:5173", // optional dev frontend
+  "https://sales-inventory-management-vbqo.vercel.app",
+  "http://localhost:5173",
 ];
+
 app.use(
   cors({
-    origin: allowedOrigins,
-    credentials: true, // important for cookies
+    origin: (origin, callback) => {
+      // Allow Postman / server-to-server
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("❌ CORS Blocked: " + origin));
+    },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
 
-// Handle OPTIONS preflight
-app.options("*", cors({ origin: allowedOrigins, credentials: true }));
+// MUST handle preflight globally
+app.options("*", cors());
 
 /* ============================================================
    LOGGING MIDDLEWARE
@@ -132,7 +142,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 /* ============================================================
-   SERVERLESS HANDLER (Vercel ONLY)
+   SERVERLESS HANDLER (Vercel)
 ============================================================ */
 export default async function handler(req: Request, res: Response) {
   try {
@@ -146,7 +156,7 @@ export default async function handler(req: Request, res: Response) {
 }
 
 /* ============================================================
-   NORMAL NODE SERVER (Render, Railway, Local)
+   NORMAL NODE SERVER (Render, Local)
 ============================================================ */
 if (!process.env.VERCEL) {
   const port = process.env.PORT || 3000;
