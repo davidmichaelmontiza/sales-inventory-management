@@ -20,6 +20,27 @@ import { BASE_API_URL } from "./index.js";
 export function registerRoutes(app: Express) {
   /* -------------------- AUTHENTICATION -------------------- */
 
+  // CURRENT LOGGED-IN USER
+app.get("/api/me", async (req, res) => {
+  try {
+    const sessionId = req.cookies.sessionId;
+    if (!sessionId) return res.json(null);
+
+    const session = await storage.getSession(sessionId);
+    if (!session) return res.json(null);
+
+    const user = await storage.getUser(session.userId);
+    if (!user) return res.json(null);
+
+    const { password, ...safeUser } = user;
+    res.json(safeUser);
+  } catch (err) {
+    console.error("ME route error:", err);
+    res.json(null);
+  }
+});
+
+
   // LOGIN
   app.post("/api/login", async (req, res) => {
     try {
